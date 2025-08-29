@@ -1,0 +1,77 @@
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import org.json.JSONObject;
+
+public class SendPostOnStartup {
+    public static void main(String[] args) {
+        try {
+            // STEP 1 → Generate Webhook
+            URL url = new URL("https://bfhldevapigw.healthrx.co.in/hiring/generateWebhook/JAVA");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json; utf-8");
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setDoOutput(true);
+
+            String jsonInputString = "{"
+                + "\"name\": \"John Doe\","
+                + "\"regNo\": \"REG12347\","
+                + "\"email\": \"john@example.com\""
+                + "}";
+
+            try(OutputStream os = conn.getOutputStream()) {
+                byte[] input = jsonInputString.getBytes("utf-8");
+                os.write(input, 0, input.length);
+            }
+
+            // Read response
+            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
+            StringBuilder response = new StringBuilder();
+            String responseLine;
+            while ((responseLine = br.readLine()) != null) {
+                response.append(responseLine.trim());
+            }
+            conn.disconnect();
+
+            JSONObject jsonResponse = new JSONObject(response.toString());
+            String webhook = jsonResponse.getString("webhook");
+            String token = jsonResponse.getString("accessToken");
+
+            System.out.println("✅ Webhook: " + webhook);
+            System.out.println("✅ Token: " + token);
+
+            // STEP 2 → Submit SQL query
+            URL submitUrl = new URL(webhook);
+            HttpURLConnection submitConn = (HttpURLConnection) submitUrl.openConnection();
+            submitConn.setRequestMethod("POST");
+            submitConn.setRequestProperty("Content-Type", "application/json; utf-8");
+            submitConn.setRequestProperty("Accept", "application/json");
+            submitConn.setRequestProperty("Authorization", "Bearer " + token);
+            submitConn.setDoOutput(true);
+
+            String sqlQuery = "{ \"finalQuery\": \"SELECT * FROM students;\" }"; // replace with actual SQL
+
+            try(OutputStream os = submitConn.getOutputStream()) {
+                byte[] input = sqlQuery.getBytes("utf-8");
+                os.write(input, 0, input.length);
+            }
+
+            int submitCode = submitConn.getResponseCode();
+            System.out.println("✅ Submission Response Code :: " + submitCode);
+
+            BufferedReader submitBr = new BufferedReader(new InputStreamReader(submitConn.getInputStream(), "utf-8"));
+            StringBuilder submitResponse = new StringBuilder();
+            String line;
+            while ((line = submitBr.readLine()) != null) {
+                submitResponse.append(line.trim());
+            }
+            System.out.println("✅ Submission Response: " + submitResponse);
+
+            submitConn.disconnect();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
