@@ -50,7 +50,18 @@ public class SendPostOnStartup {
             submitConn.setRequestProperty("Authorization", "Bearer " + token);
             submitConn.setDoOutput(true);
 
-            String sqlQuery = "{ \"finalQuery\": \"SELECT * FROM students;\" }"; // replace with actual SQL
+            String sqlQuery = "{SELECT e1.EMP_ID,
+       e1.FIRST_NAME,
+       e1.LAST_NAME,
+       e1.DEPARTMENT_NAME,
+       COUNT(e2.EMP_ID) AS YOUNGER_EMPLOYEES_COUNT
+FROM Employees e1
+LEFT JOIN Employees e2
+       ON e1.DEPARTMENT_NAME = e2.DEPARTMENT_NAME
+      AND e2.AGE < e1.AGE
+GROUP BY e1.EMP_ID, e1.FIRST_NAME, e1.LAST_NAME, e1.DEPARTMENT_NAME
+ORDER BY e1.EMP_ID DESC;
+ }"; // replace with actual SQL
 
             try(OutputStream os = submitConn.getOutputStream()) {
                 byte[] input = sqlQuery.getBytes("utf-8");
